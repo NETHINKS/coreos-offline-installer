@@ -7,6 +7,7 @@
 #
 # changes:
 # - use an offline image for install
+# - install app data
 #
 # Original work Copyright (c) 2013 The CoreOS Authors
 # Modified work Copyright (c) 2016 NETHINKS GmbH
@@ -44,7 +45,7 @@ USAGE="Usage: $0  [-d /dev/device]
 Options:
     -d DEVICE   Install CoreOS to the given device.
     -c CLOUD    Insert a cloud-init config to be executed on boot.
-    -t TMPDIR   Temporary location with enough space to download images.
+    -a APPDATA  Install all data of this directory to /app
     -v          Super verbose, for debugging.
     -h          This ;-)
 
@@ -53,16 +54,16 @@ machine then use this tool to make a permanent install.
 "
 
 IMAGE="coreos_image.bin.bz2"
-
+APPDATA=""
 DEVICE=""
 CLOUDINIT=""
 
-while getopts "d:c:t:vh" OPTION
+while getopts "d:c:a:vh" OPTION
 do
     case $OPTION in
         d) DEVICE="$OPTARG" ;;
         c) CLOUDINIT="$OPTARG" ;;
-        t) export TMPDIR="$OPTARG" ;;
+        a) APPDATA="$OPTARG" ;;
         v) set -x ;;
         h) echo "$USAGE"; exit;;
         *) exit 1;;
@@ -135,6 +136,12 @@ if [[ -n "${CLOUDINIT}" ]]; then
       echo "Installing cloud-config..."
       mkdir -p "${WORKDIR}/rootfs/var/lib/coreos-install"
       cp "${CLOUDINIT}" "${WORKDIR}/rootfs/var/lib/coreos-install/user_data"
+    fi
+
+    if [[ -n "${APPDATA}" ]]; then
+      echo "Installing appdata to /app..."
+      mkdir -p "${WORKDIR}/rootfs/app"
+      cp "${APPDATA}/"* "${WORKDIR}/rootfs/app"
     fi
 
     umount "${WORKDIR}/rootfs"
