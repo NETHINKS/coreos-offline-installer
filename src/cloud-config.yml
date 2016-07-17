@@ -1,0 +1,13 @@
+#cloud-config
+# default cloud-config for coreos-offline-installer
+
+# default hostname
+hostname: coreos
+
+# default user: admin / admin
+users:
+  - name: admin
+    passwd: $6$rounds=4096$tDt.yoBsyZp2$d./9IoyE2hKzGZajklnJ5..dUB6R.vGwTllJwE.63PVaV8lMDGfknWpkTXKdzaIlTmyWswRBgPYcJ4qephpwR1
+    groups:
+      - sudo
+      - docker

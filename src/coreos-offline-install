@@ -1,0 +1,115 @@
+#!/bin/bash
+
+# CoreOS offline installer
+#
+# this is a patched version of the original coreos-install script from 
+# https://raw.githubusercontent.com/coreos/init/master/bin/coreos-install
+#
+
+umask 077
+
+USAGE="Usage: $0  [-d /dev/device]
+Options:
+    -d DEVICE   Install CoreOS to the given device.
+    -c CLOUD    Insert a cloud-init config to be executed on boot.
+    -t TMPDIR   Temporary location with enough space to download images.
+    -v          Super verbose, for debugging.
+    -h          This ;-)
+
+This tool installs CoreOS on a block device. If you PXE booted CoreOS on a
+machine then use this tool to make a permanent install.
+"
+
+IMAGE="coreos_image.bin.bz2"
+
+DEVICE=""
+CLOUDINIT=""
+
+while getopts "d:c:t:vh" OPTION
+do
+    case $OPTION in
+        d) DEVICE="$OPTARG" ;;
+        c) CLOUDINIT="$OPTARG" ;;
+        t) export TMPDIR="$OPTARG" ;;
+        v) set -x ;;
+        h) echo "$USAGE"; exit;;
+        *) exit 1;;
+    esac
+done
+
+# Device is required, must not be a partition, must be writable
+if [[ -z "${DEVICE}" ]]; then
+    echo "$0: No target block device provided, -d is required." >&2
+    exit 1
+fi
+
+if ! [[ $(lsblk -n -d -o TYPE "${DEVICE}") =~ ^(disk|loop|lvm)$ ]]; then
+    echo "$0: Target block device (${DEVICE}) is not a full disk." >&2
+    exit 1
+fi
+
+if [[ ! -w "${DEVICE}" ]]; then
+    echo "$0: Target block device (${DEVICE}) is not writable (are you root?)" >&2
+    exit 1
+fi
+
+if [[ -n "${CLOUDINIT}" ]]; then
+    if [[ ! -f "${CLOUDINIT}" ]]; then
+        echo "$0: Cloud config file (${CLOUDINIT}) does not exist." >&2
+        exit 1
+    fi
+
+    if type -P coreos-cloudinit >/dev/null; then
+        if ! coreos-cloudinit -from-file="${CLOUDINIT}" -validate; then
+            echo "$0: Cloud config file (${CLOUDINIT}) is not valid." >&2
+            exit 1
+        fi
+    else
+        echo "$0: coreos-cloudinit not found. Could not validate config. Continuing..." >&2
+    fi
+fi
+
+# Pre-flight checks pass, lets get this party started!
+WORKDIR=$(mktemp --tmpdir -d coreos-install.XXXXXXXXXX)
+trap "rm -rf '${WORKDIR}'" EXIT
+
+if ! (bunzip2 "${IMAGE}"  --stdout >"${DEVICE}") \
+then
+    echo "Cannot expand ${IMAGE} to ${DEVICE}" >&2
+    wipefs --all --backup "${DEVICE}"
+    exit 1
+fi
+# inform the OS of partition table changes
+blockdev --rereadpt "${DEVICE}"
+
+if [[ -n "${CLOUDINIT}" ]]; then
+    # The ROOT partition should be #9 but make no assumptions here!
+    # Also don't mount by label directly in case other devices conflict.
+    ROOT_DEV=$(blkid -t "LABEL=ROOT" -o device "${DEVICE}"*)
+
+    if [[ -z "${ROOT_DEV}" ]]; then
+        echo "Unable to find new ROOT partition on ${DEVICE}" >&2
+        exit 1
+    fi
+
+    mkdir -p "${WORKDIR}/rootfs"
+    case $(blkid -t "LABEL=ROOT" -o value -s TYPE "${ROOT_DEV}") in
+      "btrfs") mount -t btrfs -o subvol=root "${ROOT_DEV}" "${WORKDIR}/rootfs" ;;
+      *)       mount "${ROOT_DEV}" "${WORKDIR}/rootfs" ;;
+    esac
+    trap "umount '${WORKDIR}/rootfs' && rm -rf '${WORKDIR}'" EXIT
+
+    if [[ -n "${CLOUDINIT}" ]]; then
+      echo "Installing cloud-config..."
+      mkdir -p "${WORKDIR}/rootfs/var/lib/coreos-install"
+      cp "${CLOUDINIT}" "${WORKDIR}/rootfs/var/lib/coreos-install/user_data"
+    fi
+
+    umount "${WORKDIR}/rootfs"
+    trap "rm -rf '${WORKDIR}'" EXIT
+fi
+
+rm -rf "${WORKDIR}"
+trap - EXIT
+
+echo "Success! CoreOS is installed on ${DEVICE}"
