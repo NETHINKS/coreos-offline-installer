@@ -115,6 +115,7 @@ fi
 # inform the OS of partition table changes
 blockdev --rereadpt "${DEVICE}"
 
+
 if [[ -n "${CLOUDINIT}" ]]; then
     # The ROOT partition should be #9 but make no assumptions here!
     # Also don't mount by label directly in case other devices conflict.
@@ -131,6 +132,10 @@ if [[ -n "${CLOUDINIT}" ]]; then
       *)       mount "${ROOT_DEV}" "${WORKDIR}/rootfs" ;;
     esac
     trap "umount '${WORKDIR}/rootfs' && rm -rf '${WORKDIR}'" EXIT
+
+    # resize filesystems
+    echo "Resize filesystems..."
+    /usr/lib64/coreos/extend-filesystems
 
     if [[ -n "${CLOUDINIT}" ]]; then
       echo "Installing cloud-config..."
