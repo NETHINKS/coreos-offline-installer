@@ -10,19 +10,22 @@ CONFIG_COREOS_ISO=https://stable.release.core-os.net/amd64-usr/current/coreos_pr
 CONFIG_COREOS_INSTALL=https://stable.release.core-os.net/amd64-usr/current/coreos_production_image.bin.bz2
 
 CLOUDCONFIG=""
+IGNITION=""
 USAGE="Create ISO for CoreOS Offline Setup
 
 $0 [Options]
 
 Options:
 -c <Path to cloud-config.yml>   use the given cloud-config.yml file
+-i <Path to ignition config>    use the given ignition config file
 "
 
 # get command line args
-while getopts "c:h" OPTION
+while getopts "c:i:h" OPTION
 do
     case $OPTION in
         c) CLOUDCONFIG="$OPTARG" ;;
+        i) IGNITION="$OPTARG" ;;
         h) echo "$USAGE"; exit;;
         *) exit 1;;
     esac
@@ -61,6 +64,15 @@ then
     cp $CLOUDCONFIG $CONFIG_DIR_TMP/setup/coreos_install/cloud-config.yml
 else
     cp $CONFIG_DIR_SRC/cloud-config.yml $CONFIG_DIR_TMP/setup/coreos_install/
+fi
+echo -e "\n\n"
+
+# copy ignition config to tmp
+if [[ -n "${IGNITION}" ]];
+then
+    cp $IGNITION $CONFIG_DIR_TMP/setup/coreos_install/coreos-install.json
+else
+    cp $CONFIG_DIR_SRC/coreos-install.json $CONFIG_DIR_TMP/setup/coreos_install/
 fi
 echo -e "\n\n"
 
