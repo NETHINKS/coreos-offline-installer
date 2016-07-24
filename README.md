@@ -42,6 +42,7 @@ Or if you want to use the ignition config:
 ./coreos-offline-install -d <setup device> -i coreos-install.json -a /media/setup/app_install
 ```
 
+If you want to change the generated cloud-config.yml or ignition config, copy the file to /tmp, where you can edit them.
 
 CoreOS will be installed on the given device. If you used the default cloud-config.yml/ignition config (and not your own), you can login with admin/admin. The data for your application (placed in *files_to_add*) are available under */app* .
 
