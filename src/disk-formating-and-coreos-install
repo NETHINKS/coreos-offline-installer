@@ -4,6 +4,8 @@
 ALLDEVICES="$(ls -1 /dev/sd?)"
 DEVICES=""
 INSTALLATIONDEVICE=""
+CLOUDCONFIGFILE="cloud-config.yml"
+IGNITIONFILE="coreos-install.json"
 
 clear
 echo "Please choose the device for CoreOS installation."
@@ -63,4 +65,33 @@ if [[ "${DEVICES}" != "" ]]; then
   fi
 fi
 
-./coreos-offline-install -d ${INSTALLATIONDEVICE} -i coreos-install.json -a /media/setup/app_install
+echo "Now coreos will be installed an ${INSTALLATIONDEVICE}."
+echo "Do you want to use a cloud config or an ignition file?"
+echo -n "Type 'c' for cloud config or 'i' for ignition. "
+read answer
+
+if [[ "${answer}" = "C" || "${answer}" = "c" ]] ; then
+  echo -n "Do you want to use your own cloud config file (y/N)? "
+  read answer
+  if [[ "${answer}" = "y" || "${answer}" = "Y" ]] ; then
+    echo "Please enter the full path to youre file."
+    read CLOUDCONFIGFILE
+  fi
+  echo "Begin installation."
+  ./coreos-offline-install -d "${INSTALLATIONDEVICE}" -c "${CLOUDCONFIGFILE}" -a /media/setup/app_install
+elif [[ "${answer}" = "I" || "${answer}" = "i" ]]; then
+  echo -n "Do you want to use your own ignition file (y/N)? "
+  read answer
+  if [[ "${answer}" = "y" || "${answer}" = "Y" ]] ; then
+    echo "Please enter the full path to youre file."
+    read IGNITIONFILE
+  fi
+  echo "Begin installation."
+  ./coreos-offline-install -d "${INSTALLATIONDEVICE}" -i "${IGNITIONFILE}" -a /media/setup/app_install
+else 
+  echo "You didn't choose a configuration file for the coreos installation."
+  echo "Because it is recomented to use one we abort here."
+  echo "All changes on the hard drives will be persist."
+  echo "To install coreos use the script coreos-offline-install."
+fi
+
