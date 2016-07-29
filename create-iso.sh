@@ -58,6 +58,10 @@ echo -e "\n\n"
 echo "copy offline installer and cloud-config.yml..."
 cp $CONFIG_DIR_SRC/coreos-offline-install $CONFIG_DIR_TMP/setup/coreos_install/
 
+# copy format and install script to tmp
+echo "copy offline installer and cloud-config.yml..."
+cp $CONFIG_DIR_SRC/disk-formating-and-coreos-install $CONFIG_DIR_TMP/setup/coreos_install/
+
 # copy cloud-config to tmp
 if [[ -n "${CLOUDCONFIG}" ]];
 then
