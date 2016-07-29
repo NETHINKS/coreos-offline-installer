@@ -45,7 +45,7 @@ if [[ "${DEVICES}" != "" ]]; then
                     if [[ "${LABEL}" != "" ]]; then
 		      sgdisk -Z "${choice}" > /dev/null 2>&1 &&
                       sgdisk -n 1:0:0 -c 1:"${LABEL}" "${choice}" > /dev/null 2>&1 &&
-                      mkfs.ext3 "${choice}1" > /dev/null 2>&1
+                      mkfs.ext4 "${choice}1" > /dev/null 2>&1
                       if [[ $? = 0 ]] ; then
                         echo "The operation has completed successfully for the device ${choice}."
                         echo ""
