@@ -1,0 +1,77 @@
+#!/bin/bash
+
+USAGE="Usage: $0  [-d /dev/device] [-a /media/setup/app_install]
+Options:
+    -d DEVICE   Install CoreOS to the given device.
+    -a APPDATA  Install all data of this directory to /app
+    -v          Super verbose, for debugging.
+    -h          This ;-)
+
+This tool installs CoreOS on a block device. If you PXE booted CoreOS on a
+machine then use this tool to make a permanent install.
+"
+
+DEVICE=""
+APPDATA=""
+
+while getopts "d:a:vh" OPTION
+do
+    case $OPTION in
+        d) DEVICE="$OPTARG" ;;
+        a) APPDATA="$OPTARG" ;;
+        v) set -x ;;
+        h) echo "$USAGE"; exit;;
+        *) exit 1;;
+    esac
+done
+
+
+# The ROOT partition should be #9 but make no assumptions here!
+# Also don't mount by label directly in case other devices conflict.
+ROOT_DEV=$(blkid -t "LABEL=ROOT" -o device "${DEVICE}"*)
+DEVICETYPE=$(blkid -t "LABEL=ROOT" -o value -s TYPE "${ROOT_DEV}")
+
+if [[ -z "${ROOT_DEV}" ]]; then
+    echo "Unable to find new ROOT partition on ${DEVICE}" >&2
+    exit 1
+fi
+
+# resize filesystems
+echo "Resize filesystems..."
+old_size=$(blockdev --getsz "${ROOT_DEV}")
+    cgpt resize "${ROOT_DEV}" > /dev/null 2>&1
+
+if [[ "${old_size}" -eq $(blockdev --getsz "${ROOT_DEV}") ]]; then
+  echo "Couldn't extend ${ROOT_DEV}"
+  exit 1
+else
+  case "${DEVICETYPE}" in
+      "btrfs")
+          # map the device name to the btrfs device id
+          device_id=$(btrfs filesystem show -d "${ROOT_DEV}" | \
+                      awk -v "d=${ROOT_DEV}" -e 'd == $8 {print $2}')
+          btrfs filesystem resize "${device_id}:max" "/"
+          ;;
+      "ext4")
+          e2fsck -f "${ROOT_DEV}" > /dev/null 2>&1 
+          resize2fs "${ROOT_DEV}" > /dev/null 2>&1
+          ;;
+  esac 
+fi
+
+
+mkdir -p "${WORKDIR}/rootfs"
+case "${DEVICETYPE}" in
+  "btrfs") mount -t btrfs -o subvol=root "${ROOT_DEV}" "${WORKDIR}/rootfs" ;;
+  *)       mount "${ROOT_DEV}" "${WORKDIR}/rootfs" ;;
+esac
+trap "umount '${WORKDIR}/rootfs' && rm -rf '${WORKDIR}'" EXIT
+
+if [[ -n "${APPDATA}" ]]; then
+  echo "Installing appdata to /app..."
+  mkdir -p "${WORKDIR}/rootfs/app"
+  cp -r "${APPDATA}/"* "${WORKDIR}/rootfs/app"
+fi
+
+umount "${WORKDIR}/rootfs"
+trap "rm -rf '${WORKDIR}'" EXIT

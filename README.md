@@ -35,11 +35,9 @@ mount /dev/sr0 /media
 You can start your CoreOS offline setup with the following commands:
 ```
 cd /media/setup/coreos_install
-./coreos-offline-install -d <setup device> -c cloud-config.yml -a /media/setup/app_install
+./installer
 ```
-Or if you want to use the ignition config:
-```
-./coreos-offline-install -d <setup device> -i coreos-install.json -a /media/setup/app_install
+The script provides an interactive installation.
 ```
 
 If you want to change the generated cloud-config.yml or ignition config, copy the file to /tmp, where you can edit them.

@@ -46,7 +46,6 @@ Options:
     -d DEVICE   Install CoreOS to the given device.
     -c CLOUD    Insert a cloud-init config to be executed on boot.
     -i IGNITION Insert an Ignition config to be executed on boot.
-    -a APPDATA  Install all data of this directory to /app
     -v          Super verbose, for debugging.
     -h          This ;-)
 
@@ -55,17 +54,15 @@ machine then use this tool to make a permanent install.
 "
 
 IMAGE="coreos_image.bin.bz2"
-APPDATA=""
 DEVICE=""
 CLOUDINIT=""
 
-while getopts "d:c:i:a:vh" OPTION
+while getopts "d:c:i:vh" OPTION
 do
     case $OPTION in
         d) DEVICE="$OPTARG" ;;
         c) CLOUDINIT="$OPTARG" ;;
         i) IGNITION="$OPTARG" ;;
-        a) APPDATA="$OPTARG" ;;
         v) set -x ;;
         h) echo "$USAGE"; exit;;
         *) exit 1;;
@@ -141,20 +138,11 @@ case $(blkid -t "LABEL=ROOT" -o value -s TYPE "${ROOT_DEV}") in
 esac
 trap "umount '${WORKDIR}/rootfs' && rm -rf '${WORKDIR}'" EXIT
 
-# resize filesystems
-echo "Resize filesystems..."
-/usr/lib64/coreos/extend-filesystems
 
 if [[ -n "${CLOUDINIT}" ]]; then
   echo "Installing cloud-config..."
   mkdir -p "${WORKDIR}/rootfs/var/lib/coreos-install"
   cp "${CLOUDINIT}" "${WORKDIR}/rootfs/var/lib/coreos-install/user_data"
-fi
-
-if [[ -n "${APPDATA}" ]]; then
-  echo "Installing appdata to /app..."
-  mkdir -p "${WORKDIR}/rootfs/app"
-  cp -r "${APPDATA}/"* "${WORKDIR}/rootfs/app"
 fi
 
 umount "${WORKDIR}/rootfs"

@@ -1,0 +1,116 @@
+#!/bin/bash
+
+# Getting list of all hard disks
+ALLDEVICES="$(ls -1 /dev/sd?)"
+DEVICES=""
+INSTALLATIONDEVICE=""
+CLOUDCONFIGFILE="cloud-config.yml"
+IGNITIONFILE="coreos-install.json"
+
+clear
+echo "Please choose the device for CoreOS installation."
+
+select choice in ${ALLDEVICES} cancel
+do
+  case "${choice}" in
+   cancel)  echo "The installation of coreos is canceled."; exit 0 ;;
+       "")  echo "Invalid selection" ;;
+        *)  clear
+            echo "You choose ${choice} for installation."
+            echo ""
+            INSTALLATIONDEVICE=$choice
+            break ;;
+  esac
+done
+
+for device in ${ALLDEVICES}
+do
+   if [[ "${device}" != "${INSTALLATIONDEVICE}" ]]; then
+     DEVICES="${DEVICES} ${device}"
+   fi
+done
+
+echo "Do you want to use a cloud config or an ignition file?"
+echo -e "Type 'c' for cloud config or 'i' for ignition. \c"
+read answer
+
+if [[ "${answer}" = "C" || "${answer}" = "c" ]] ; then
+  echo -e "\nDo you want to use your own cloud config file?"
+  echo "If you let it blank or choose no the default cloud-config file will be used."
+  echo -e "(y/N) > \c"
+  read answer
+  if [[ "${answer}" = "y" || "${answer}" = "Y" || "${answer}" = "yes" || "${answer}" = "Yes" ]] ; then
+    echo -e "\nPlease enter the full path to youre file."
+    echo -n "> "
+    read CLOUDCONFIGFILE
+  fi
+  echo "Begin installation."
+  ./coreos-offline-install -d "${INSTALLATIONDEVICE}" -c "${CLOUDCONFIGFILE}"
+elif [[ "${answer}" = "I" || "${answer}" = "i" ]]; then
+  echo -e "\nDo you want to use your own ignition file? "
+  echo "If you let it blank or choose 'no' the default ignition file will be used."
+  echo -e "(y/N) > \c"
+  read answer
+  if [[ "${answer}" = "y" || "${answer}" = "Y" || "${answer}" = "yes" || "${answer}" = "Yes" ]] ; then
+    echo -e "\n Please enter the full path to youre file."
+    echo -n "> "
+    read IGNITIONFILE
+  fi
+  echo "Begin installation."
+  ./coreos-offline-install -d "${INSTALLATIONDEVICE}" -i "${IGNITIONFILE}" 
+else
+  echo "You didn't choose a configuration file for the coreos installation."
+  echo "Because it is recomented to use one we abort here."
+  echo "All changes on the hard drives will be persist."
+  echo "To install coreos use the script coreos-offline-install."
+  exit 1
+fi
+
+# Adding files
+sleep 5
+clear
+echo "It is possible to add additional files to your coreos installation."
+echo "You can specify a directory and all the files in it"
+echo "will be copied in the /app directory on the coreos root partition."
+echo -e "Do you want to add additional files (y/N)? \c"
+read answer
+if [[ "${answer}" = "y" || "${answer}" = "Y" || "${answer}" = "yes" || "${answer}" = "Yes" ]] ; then
+  echo "Please specify your source directory (like /media/setup/app_install):"
+  echo -e "> \c"
+  read directory
+  if [[ -n "${directory}" && "${directory}" == /* ]] ; then
+    ./addfiles -d "${INSTALLATIONDEVICE}" -a "${directory}"
+  else
+   echo "The path \"${directory}\" didn't start with a / or you let it empty."
+   echo "No files will copied to the hard disk."
+  fi
+fi
+
+# Foramt additional hard drives
+sleep 5
+clear
+echo "You can use this script to format additional devices."
+echo "The script delete all partition indormation from the device"
+echo "and create a new partition with the full size of the device."
+echo "The partition will be format with an ext4 filesystem."
+echo "All datas on these will be lost!"
+echo -e "Do you want to format additional devices (y/N)? \c" 
+read answer
+if [[ "${answer}" = "y" || "${answer}" = "Y" || "${answer}" = "yes" || "${answer}" = "Yes" ]] ; then
+  newdevice="yes"
+  while [ "${newdevice}" == "yes" ]
+  do
+    ./formating-additional-disks "${DEVICES}"
+    echo "Do you want to format additional devices?"
+    select choice in yes no
+    do
+      case "${choice}" in
+        yes)	newdevice="yes"; clear; break ;;
+         no)	newdevice="no"; break ;;
+         "")	echo "Invalid selection" ;;
+      esac
+    done
+  done
+fi
+
+echo "Your coreos istallation is ready for use."

@@ -1,0 +1,35 @@
+#!/bin/bash
+
+DEVICES=$*
+echo ${DEVICES}
+if [[ ! -n "${DEVICES}" ]] ; then
+  echo "There are no devices to format"
+  exit 1
+fi
+
+select choice in ${DEVICES} cancel
+do
+  case "${choice}" in
+           "")  echo "Invalid selection" ;;
+       cancel) break ;;
+            *)  echo "Please enter the label for the partiton ${choice}1." 
+                echo -n "Label > "
+                read LABEL 
+                if [[ "${LABEL}" != "" ]]; then
+                  sgdisk -Z "${choice}" > /dev/null 2>&1 &&
+                  sgdisk -n 1:0:0 -c 1:"${LABEL}" "${choice}" > /dev/null 2>&1 &&
+                  mkfs.ext4 "${choice}1" > /dev/null 2>&1
+                  if [[ $? = 0 ]] ; then
+                    echo "The operation has completed successfully for the device ${choice}."
+                    echo ""
+                  else
+                    echo "An error has occurred. Please check the device."
+                    exit 1
+                  fi
+                else 
+                  echo "The label is required. Please try again." 
+                  echo ""
+                fi 
+                break ;;
+  esac
+done
