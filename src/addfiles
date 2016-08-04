@@ -59,7 +59,7 @@ else
   esac 
 fi
 
-
+# mounting the root partition
 mkdir -p "${WORKDIR}/rootfs"
 case "${DEVICETYPE}" in
   "btrfs") mount -t btrfs -o subvol=root "${ROOT_DEV}" "${WORKDIR}/rootfs" ;;
@@ -67,6 +67,7 @@ case "${DEVICETYPE}" in
 esac
 trap "umount '${WORKDIR}/rootfs' && rm -rf '${WORKDIR}'" EXIT
 
+# copy files
 if [[ -n "${APPDATA}" ]]; then
   echo "Installing appdata to /app..."
   mkdir -p "${WORKDIR}/rootfs/app"

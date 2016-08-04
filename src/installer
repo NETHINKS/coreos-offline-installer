@@ -23,6 +23,8 @@ do
   esac
 done
 
+# remove the installation device from the list
+# to avod that it reformat by mistake in the last step ;-)
 for device in ${ALLDEVICES}
 do
    if [[ "${device}" != "${INSTALLATIONDEVICE}" ]]; then

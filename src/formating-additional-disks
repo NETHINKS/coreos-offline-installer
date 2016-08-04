@@ -1,12 +1,14 @@
 #!/bin/bash
 
 DEVICES=$*
-echo ${DEVICES}
+
+# run only if ter are any devices to format
 if [[ ! -n "${DEVICES}" ]] ; then
   echo "There are no devices to format"
   exit 1
 fi
 
+# menu to choose one of the devices
 select choice in ${DEVICES} cancel
 do
   case "${choice}" in
@@ -16,6 +18,7 @@ do
                 echo -n "Label > "
                 read LABEL 
                 if [[ "${LABEL}" != "" ]]; then
+                  # delete  partition table, create a new partition and format 
                   sgdisk -Z "${choice}" > /dev/null 2>&1 &&
                   sgdisk -n 1:0:0 -c 1:"${LABEL}" "${choice}" > /dev/null 2>&1 &&
                   mkfs.ext4 "${choice}1" > /dev/null 2>&1
