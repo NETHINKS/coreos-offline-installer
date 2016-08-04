@@ -67,7 +67,8 @@ else
 fi
 
 # Adding files
-sleep 5
+echo -e "\n\nType enter to continue.\c"
+read nothing
 clear
 echo "It is possible to add additional files to your coreos installation."
 echo "You can specify a directory and all the files in it"
@@ -87,7 +88,8 @@ if [[ "${answer}" = "y" || "${answer}" = "Y" || "${answer}" = "yes" || "${answer
 fi
 
 # Foramt additional hard drives
-sleep 5
+echo -e "\n\nType enter to continue.\c"
+read nothing
 clear
 echo "You can use this script to format additional devices."
 echo "The script delete all partition indormation from the device"

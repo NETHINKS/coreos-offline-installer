@@ -53,7 +53,7 @@ else
           btrfs filesystem resize "${device_id}:max" "/"
           ;;
       "ext4")
-          e2fsck -f "${ROOT_DEV}" > /dev/null 2>&1 
+          e2fsck -f "${ROOT_DEV}"
           resize2fs "${ROOT_DEV}" > /dev/null 2>&1
           ;;
   esac 
