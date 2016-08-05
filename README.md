@@ -38,7 +38,6 @@ cd /media/setup/coreos_install
 ./installer
 ```
 The script provides an interactive installation and use the subscripts coreos-offline-install, addfiles and formating-additional-disks.
-```
 
 If you want to change the generated cloud-config.yml or ignition config, copy the file to /tmp, where you can edit them.
 
